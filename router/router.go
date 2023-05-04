@@ -10,8 +10,9 @@ import (
 
 func ConfigureRouter(handler *handler.Handler) *mux.Router {
 	router := mux.NewRouter()
+	router.HandleFunc("/api/reservationRequest", handler.CreateReservationRequest).Methods("POST")
 
-	log.Fatal(http.ListenAndServe(":8082", router))
+	log.Fatal(http.ListenAndServe(":8083", router))
 
 	return router
 }

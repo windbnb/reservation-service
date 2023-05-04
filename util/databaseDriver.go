@@ -21,8 +21,8 @@ func ConnectToDatabase() *gorm.DB {
 		fmt.Println("Connection to DB successfull.")
 	}
 
-	db.DropTable("reservations")
-	db.AutoMigrate(&model.Reservation{})
+	db.DropTable("reservation_requests")
+	db.AutoMigrate(&model.ReservationRequest{})
 
 	return db
 }

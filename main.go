@@ -21,9 +21,9 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	db := util.ConnectToDatabase()
-	router := router.ConfigureRouter(&handler.Handler{Service: &service.ReservationService{ Repo: &repository.Repository{Db: db}}})
+	router := router.ConfigureRouter(&handler.Handler{Service: &service.ReservationRequestService{ Repo: &repository.Repository{Db: db}}})
 
-	srv := &http.Server{Addr: "localhost:8082", Handler: router}
+	srv := &http.Server{Addr: "localhost:8083", Handler: router}
 	go func() {
 		log.Println("server starting")
 		if err := srv.ListenAndServe(); err != nil {
