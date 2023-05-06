@@ -6,9 +6,12 @@ import (
 	"github.com/windbnb/reservation-service/model"
 	"github.com/windbnb/reservation-service/repository"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 )
+
+var accommodationServiceUrl = os.Getenv("accommodationServiceUrl") + "/api/accomodation/"
 
 type ReservationRequestService struct {
 	Repo *repository.Repository
@@ -25,7 +28,7 @@ func (s *ReservationRequestService) SaveReservationRequest(createReservationRequ
 
 	client := &http.Client{}
 
-	req, _ := http.NewRequest("GET", "http://localhost:8082/api/accomodation/"+strconv.FormatUint(uint64(createReservationRequest.AccommodationID), 10), nil)
+	req, _ := http.NewRequest("GET", accommodationServiceUrl+strconv.FormatUint(uint64(createReservationRequest.AccommodationID), 10), nil)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -72,4 +75,12 @@ func (s *ReservationRequestService) isDateInAvailableTerms(date time.Time, avail
 	}
 
 	return false
+}
+
+func (s *ReservationRequestService) GetGuestActiveReservations(guestID uint) *[]model.ReservationRequest {
+	return s.Repo.FindGuestsActive(guestID)
+}
+
+func (s *ReservationRequestService) GetOwnersActiveReservations(ownerID uint) *[]model.ReservationRequest {
+	return s.Repo.FindOwnersActive(ownerID)
 }

@@ -2,7 +2,9 @@ package handler
 
 import (
 	"encoding/json"
+	"github.com/gorilla/mux"
 	"net/http"
+	"strconv"
 
 	"github.com/windbnb/reservation-service/model"
 	"github.com/windbnb/reservation-service/service"
@@ -30,4 +32,50 @@ func (h *Handler) CreateReservationRequest(w http.ResponseWriter, r *http.Reques
 	}
 
 	json.NewEncoder(w).Encode(reservationRequest)
+}
+
+func (h *Handler) GetGuestsActive(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	params := mux.Vars(r)
+	guestID, _ := strconv.Atoi(params["id"])
+
+	activeReservations := h.Service.GetGuestActiveReservations(uint(guestID))
+
+	reservationRequestsDto := []model.ReservationRequestDto{}
+
+	for _, reservationRequest := range *activeReservations {
+		reservationRequestsDto = append(reservationRequestsDto, model.ReservationRequestDto{
+			Status:          reservationRequest.Status,
+			GuestNumber:     reservationRequest.GuestNumber,
+			GuestID:         reservationRequest.GuestID,
+			AccommodationID: reservationRequest.AccommodationID,
+			StartDate:       reservationRequest.StartDate,
+			EndDate:         reservationRequest.EndDate})
+	}
+
+	json.NewEncoder(w).Encode(reservationRequestsDto)
+}
+
+func (h *Handler) GetOwnersActive(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	params := mux.Vars(r)
+	guestID, _ := strconv.Atoi(params["id"])
+
+	activeReservations := h.Service.GetOwnersActiveReservations(uint(guestID))
+
+	reservationRequestsDto := []model.ReservationRequestDto{}
+
+	for _, reservationRequest := range *activeReservations {
+		reservationRequestsDto = append(reservationRequestsDto, model.ReservationRequestDto{
+			Status:          reservationRequest.Status,
+			GuestNumber:     reservationRequest.GuestNumber,
+			GuestID:         reservationRequest.GuestID,
+			AccommodationID: reservationRequest.AccommodationID,
+			StartDate:       reservationRequest.StartDate,
+			EndDate:         reservationRequest.EndDate})
+	}
+
+	json.NewEncoder(w).Encode(reservationRequestsDto)
 }
