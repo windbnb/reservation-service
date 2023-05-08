@@ -28,4 +28,5 @@ type ReservationRequestDto struct {
 	StartDate            time.Time                `json:"startDate"`
 	EndDate              time.Time                `json:"endDate"`
 	GuestNumber          uint                     `json:"guestNumber"`
+	ID                   string                   `json:"id"`
 }

@@ -21,7 +21,7 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	db := util.ConnectToDatabase()
-	router := router.ConfigureRouter(&handler.Handler{Service: &service.ReservationRequestService{ Repo: &repository.Repository{Db: db}}})
+	router := router.ConfigureRouter(&handler.Handler{Service: &service.ReservationRequestService{Repo: &repository.Repository{Db: db}}})
 
 	srv := &http.Server{Addr: "localhost:8083", Handler: router}
 	go func() {
@@ -34,8 +34,7 @@ func main() {
 	}()
 
 	<-quit
-	
-	defer db.Close()
+
 	log.Println("service shutting down ...")
 
 	// gracefully stop server

@@ -31,7 +31,15 @@ func (h *Handler) CreateReservationRequest(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	json.NewEncoder(w).Encode(reservationRequest)
+	var reservationRequestDto = model.ReservationRequestDto{
+		ID:              reservationRequest.ID.Hex(),
+		Status:          reservationRequest.Status,
+		GuestNumber:     reservationRequest.GuestNumber,
+		GuestID:         reservationRequest.GuestID,
+		AccommodationID: reservationRequest.AccommodationID,
+		StartDate:       reservationRequest.StartDate,
+		EndDate:         reservationRequest.EndDate}
+	json.NewEncoder(w).Encode(reservationRequestDto)
 }
 
 func (h *Handler) GetGuestsActive(w http.ResponseWriter, r *http.Request) {
@@ -46,6 +54,7 @@ func (h *Handler) GetGuestsActive(w http.ResponseWriter, r *http.Request) {
 
 	for _, reservationRequest := range *activeReservations {
 		reservationRequestsDto = append(reservationRequestsDto, model.ReservationRequestDto{
+			ID:              reservationRequest.ID.Hex(),
 			Status:          reservationRequest.Status,
 			GuestNumber:     reservationRequest.GuestNumber,
 			GuestID:         reservationRequest.GuestID,
@@ -69,6 +78,7 @@ func (h *Handler) GetOwnersActive(w http.ResponseWriter, r *http.Request) {
 
 	for _, reservationRequest := range *activeReservations {
 		reservationRequestsDto = append(reservationRequestsDto, model.ReservationRequestDto{
+			ID:              reservationRequest.ID.Hex(),
 			Status:          reservationRequest.Status,
 			GuestNumber:     reservationRequest.GuestNumber,
 			GuestID:         reservationRequest.GuestID,

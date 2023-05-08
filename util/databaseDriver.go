@@ -1,28 +1,25 @@
 package util
 
 import (
-	"fmt"
+	"context"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
-
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
-	model "github.com/windbnb/reservation-service/model"
+	"time"
 )
 
-func ConnectToDatabase() *gorm.DB {
-	connectionString := "host=localhost user=postgres dbname=ReservationServiceDB sslmode=disable password=root port=5432"
+func ConnectToDatabase() *mongo.Database {
+	var connectionString = "mongodb://user:pass@localhost:27017"
+	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
-	dialect := "postgres"
+	defer cancel()
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connectionString).SetServerAPIOptions(serverAPI))
 
-	db, err := gorm.Open(dialect, connectionString)
 	if err != nil {
-		log.Fatal(err)
-	} else {
-		fmt.Println("Connection to DB successfull.")
+		log.Printf("Connecting to database failed.")
+		return nil
 	}
 
-	db.DropTable("reservation_requests")
-	db.AutoMigrate(&model.ReservationRequest{})
-
-	return db
+	return client.Database("reservation_database")
 }
