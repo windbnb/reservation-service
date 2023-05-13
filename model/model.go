@@ -1,13 +1,9 @@
 package model
 
 import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
-
-	"github.com/jinzhu/gorm"
 )
-
-type Reservation struct {
-}
 
 type ReservationRequestStatus string
 
@@ -18,12 +14,12 @@ const (
 )
 
 type ReservationRequest struct {
-	gorm.Model
-	StartDate       time.Time
-	EndDate         time.Time
-	AccommodationID uint
-	GuestID         uint
-	GuestNumber     uint
-	Status          ReservationRequestStatus
-	OwnerID         uint
+	ID              primitive.ObjectID       `bson:"_id"`
+	StartDate       time.Time                `bson:"startDate"`
+	EndDate         time.Time                `bson:"endDate"`
+	AccommodationID uint                     `bson:"accommodationID"`
+	GuestID         uint                     `bson:"guestID"`
+	GuestNumber     uint                     `bson:"guestNumber"`
+	Status          ReservationRequestStatus `bson:"status"`
+	OwnerID         uint                     `bson:"ownerID"`
 }
