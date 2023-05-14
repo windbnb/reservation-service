@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/windbnb/reservation-service/model"
 	"github.com/windbnb/reservation-service/repository"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"os"
 	"strconv"
@@ -83,4 +84,23 @@ func (s *ReservationRequestService) GetGuestActiveReservations(guestID uint) *[]
 
 func (s *ReservationRequestService) GetOwnersActiveReservations(ownerID uint) *[]model.ReservationRequest {
 	return s.Repo.FindOwnersActive(ownerID)
+}
+
+func (s *ReservationRequestService) DeleteReservationRequest(reservationRequestID primitive.ObjectID) error {
+	reservationRequest := s.Repo.FindReservationRequest(reservationRequestID)
+
+	if reservationRequest == nil {
+		return errors.New("Reservation request with given id does not exist")
+	}
+
+	if reservationRequest.Status != model.SUBMITTED {
+		return errors.New("Reservation request can not be deleted")
+	}
+
+	result := s.Repo.DeleteReservationRequest(reservationRequestID)
+	if !result {
+		return errors.New("It's not possible to delete reservation request")
+	}
+
+	return nil
 }

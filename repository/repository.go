@@ -22,7 +22,6 @@ func (r *Repository) FindAcceptedReservationRequests(accomodationId uint) *[]mod
 		{"accommodationID", accomodationId},
 		{"status", "ACCEPTED"},
 	}
-	//r.Db.Client().Connect(c)
 	cursor, err := r.Db.Collection("reservation_request").Find(ctx, filter)
 
 	if err != nil {
@@ -32,7 +31,10 @@ func (r *Repository) FindAcceptedReservationRequests(accomodationId uint) *[]mod
 
 	for cursor.Next(ctx) {
 		var reservationRequest model.ReservationRequest
-		cursor.Decode(&reservationRequest)
+		err := cursor.Decode(&reservationRequest)
+		if err != nil {
+			continue
+		}
 
 		reservationRequests = append(reservationRequests, reservationRequest)
 	}
@@ -63,7 +65,6 @@ func (r *Repository) FindGuestsActive(guestID uint) *[]model.ReservationRequest 
 		{"status", "ACCEPTED"},
 		{"endDate", bson.D{{"$gte", time.Now()}}},
 	}
-	//r.Db.Client().Connect(c)
 	cursor, err := r.Db.Collection("reservation_request").Find(ctx, filter)
 
 	if err != nil {
@@ -73,7 +74,10 @@ func (r *Repository) FindGuestsActive(guestID uint) *[]model.ReservationRequest 
 
 	for cursor.Next(ctx) {
 		var reservationRequest model.ReservationRequest
-		cursor.Decode(&reservationRequest)
+		err := cursor.Decode(&reservationRequest)
+		if err != nil {
+			continue
+		}
 
 		reservationRequests = append(reservationRequests, reservationRequest)
 	}
@@ -91,7 +95,6 @@ func (r *Repository) FindOwnersActive(ownerID uint) *[]model.ReservationRequest 
 		{"status", "ACCEPTED"},
 		{"endDate", bson.D{{"$gte", time.Now()}}},
 	}
-	//r.Db.Client().Connect(c)
 	cursor, err := r.Db.Collection("reservation_request").Find(ctx, filter)
 
 	if err != nil {
@@ -101,10 +104,46 @@ func (r *Repository) FindOwnersActive(ownerID uint) *[]model.ReservationRequest 
 
 	for cursor.Next(ctx) {
 		var reservationRequest model.ReservationRequest
-		cursor.Decode(&reservationRequest)
+		err := cursor.Decode(&reservationRequest)
+		if err != nil {
+			continue
+		}
 
 		reservationRequests = append(reservationRequests, reservationRequest)
 	}
 
 	return &reservationRequests
+}
+
+func (r *Repository) DeleteReservationRequest(reservationRequestID primitive.ObjectID) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	filter := bson.D{
+		{"_id", reservationRequestID},
+	}
+
+	one, err := r.Db.Collection("reservation_request").DeleteOne(ctx, filter)
+	if err != nil {
+		return false
+	}
+
+	return one.DeletedCount == 1
+}
+
+func (r *Repository) FindReservationRequest(reservationRequestID primitive.ObjectID) *model.ReservationRequest {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	filter := bson.D{
+		{"_id", reservationRequestID},
+	}
+
+	var reservationRequest model.ReservationRequest
+	err := r.Db.Collection("reservation_request").FindOne(ctx, filter).Decode(&reservationRequest)
+	if err != nil {
+		return nil
+	}
+
+	return &reservationRequest
 }

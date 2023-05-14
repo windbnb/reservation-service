@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"github.com/gorilla/mux"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"strconv"
 
@@ -20,6 +21,8 @@ func (h *Handler) CreateReservationRequest(w http.ResponseWriter, r *http.Reques
 	var createReservationRequest *model.CreateReservationRequest
 	err := json.NewDecoder(r.Body).Decode(&createReservationRequest)
 	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(model.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
 		return
 	}
 
@@ -39,6 +42,8 @@ func (h *Handler) CreateReservationRequest(w http.ResponseWriter, r *http.Reques
 		AccommodationID: reservationRequest.AccommodationID,
 		StartDate:       reservationRequest.StartDate,
 		EndDate:         reservationRequest.EndDate}
+
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(reservationRequestDto)
 }
 
@@ -63,6 +68,7 @@ func (h *Handler) GetGuestsActive(w http.ResponseWriter, r *http.Request) {
 			EndDate:         reservationRequest.EndDate})
 	}
 
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(reservationRequestsDto)
 }
 
@@ -87,5 +93,29 @@ func (h *Handler) GetOwnersActive(w http.ResponseWriter, r *http.Request) {
 			EndDate:         reservationRequest.EndDate})
 	}
 
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(reservationRequestsDto)
+}
+
+func (h *Handler) DeleteReservationRequest(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	params := mux.Vars(r)
+	id, _ := params["id"]
+
+	objectId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(model.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+		return
+	}
+
+	err = h.Service.DeleteReservationRequest(objectId)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(model.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
