@@ -9,6 +9,7 @@ require (
 
 require (
 	github.com/golang/snappy v0.0.1 // indirect
+	github.com/hlts2/round-robin v0.0.0-20211119053418-5ea74e1f7bfc // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
 	github.com/pkg/errors v0.9.1 // indirect

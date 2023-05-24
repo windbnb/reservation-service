@@ -1,14 +1,12 @@
 package service
 
 import (
-	"encoding/json"
 	"errors"
+	"github.com/windbnb/reservation-service/client"
 	"github.com/windbnb/reservation-service/model"
 	"github.com/windbnb/reservation-service/repository"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"net/http"
 	"os"
-	"strconv"
 	"time"
 )
 
@@ -27,24 +25,17 @@ func (s *ReservationRequestService) SaveReservationRequest(createReservationRequ
 		return nil, errors.New("Number of days must be positive")
 	}
 
-	client := &http.Client{}
-
-	req, _ := http.NewRequest("GET", accommodationServiceUrl+strconv.FormatUint(uint64(createReservationRequest.AccommodationID), 10), nil)
-
-	resp, err := client.Do(req)
+	accommodationInfo, err := client.GetAccommodation(createReservationRequest.AccommodationID)
 	if err != nil {
 		return nil, err
 	}
-	var accommodationInfo = &model.AccommodationInfo{}
-	decoderErr := json.NewDecoder(resp.Body).Decode(&accommodationInfo)
-
-	if decoderErr != nil {
-		return nil, decoderErr
+	if err != nil {
+		return nil, err
 	}
 
 	for i := 0; uint(i) < createReservationRequest.NumberOfDays; i++ {
 		if !s.isDateInAvailableTerms(createReservationRequest.StartDate.AddDate(0, 0, i), accommodationInfo.AvailableTerms) {
-			return nil, errors.New("Accommodaion is not available")
+			return nil, errors.New("Accommodation is not available")
 		}
 	}
 
@@ -56,12 +47,17 @@ func (s *ReservationRequestService) SaveReservationRequest(createReservationRequ
 		}
 	}
 
+	var status = model.SUBMITTED
+	if accommodationInfo.AcceptReservationType == model.AUTOMATICALLY {
+		status = model.ACCEPTED
+	}
+
 	var reservationRequest = model.ReservationRequest{
 		StartDate:       createReservationRequest.StartDate,
 		EndDate:         createReservationRequest.StartDate.AddDate(0, 0, int(createReservationRequest.NumberOfDays)),
 		GuestID:         createReservationRequest.GuestID,
 		GuestNumber:     createReservationRequest.GuestNumber,
-		Status:          model.SUBMITTED,
+		Status:          status,
 		AccommodationID: createReservationRequest.AccommodationID,
 		OwnerID:         accommodationInfo.UserID}
 
@@ -102,5 +98,33 @@ func (s *ReservationRequestService) DeleteReservationRequest(reservationRequestI
 		return errors.New("It's not possible to delete reservation request")
 	}
 
+	client.DeleteReservedTerm(reservationRequest.ReservedTermId)
+
 	return nil
+}
+
+func (s *ReservationRequestService) AcceptReservationRequest(reservationRequestId primitive.ObjectID, hostId uint) (*model.ReservationRequest, error) {
+	reservationRequest := s.Repo.FindReservationRequest(reservationRequestId)
+	if reservationRequest == nil {
+		return nil, errors.New("Given reservation request does not exist")
+	}
+
+	if reservationRequest.OwnerID != hostId {
+		return nil, errors.New("You can not access to this entity")
+	}
+
+	if reservationRequest.Status != model.SUBMITTED {
+		return nil, errors.New("You cannot update given reservation request")
+	}
+
+	reservationRequest.Status = model.ACCEPTED
+	s.Repo.AcceptReservationRequest(reservationRequest)
+
+	resp, err := client.CreateReservedTerm(*reservationRequest)
+	if err == nil {
+		reservationRequest.ReservedTermId = resp
+		s.Repo.UpdateReservationRequest(reservationRequest)
+	}
+
+	return reservationRequest, nil
 }

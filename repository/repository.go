@@ -147,3 +147,52 @@ func (r *Repository) FindReservationRequest(reservationRequestID primitive.Objec
 
 	return &reservationRequest
 }
+
+func (r *Repository) AcceptReservationRequest(reservationRequest *model.ReservationRequest) *model.ReservationRequest {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	filter := bson.D{
+		{
+			"$or",
+			bson.A{
+				bson.D{
+					{"$and", bson.A{
+						bson.D{{"startDate", bson.D{{"$gte", reservationRequest.StartDate}}}},
+						bson.D{{"startDate", bson.D{{"$lte", reservationRequest.EndDate}}}},
+					}},
+				},
+				bson.D{
+					{"$and", bson.A{
+						bson.D{{"endDate", bson.D{{"$gte", reservationRequest.StartDate}}}},
+						bson.D{{"endDate", bson.D{{"$lte", reservationRequest.EndDate}}}},
+					}},
+				},
+			},
+		},
+	}
+
+	declinedReservationRequest := bson.D{{"$set", bson.D{{"status", "DECLINED"}}}}
+	acceptedReservationRequest := bson.D{{"$set", bson.D{{"status", "ACCEPTED"}}}}
+
+	_, err := r.Db.Collection("reservation_request").UpdateMany(ctx, filter, declinedReservationRequest)
+	_, err = r.Db.Collection("reservation_request").UpdateByID(ctx, reservationRequest.ID, acceptedReservationRequest)
+	if err != nil {
+		return nil
+	}
+
+	return reservationRequest
+}
+
+func (r *Repository) UpdateReservationRequest(reservationRequest *model.ReservationRequest) *model.ReservationRequest {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	updateQuery := bson.D{{"$set", bson.D{{"reservedTermId", reservationRequest.ReservedTermId}}}}
+	_, err := r.Db.Collection("reservation_request").UpdateByID(ctx, reservationRequest.ID, updateQuery)
+	if err != nil {
+		return nil
+	}
+
+	return reservationRequest
+}
