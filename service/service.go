@@ -82,7 +82,7 @@ func (s *ReservationRequestService) GetOwnersActiveReservations(ownerID uint) *[
 	return s.Repo.FindOwnersActive(ownerID)
 }
 
-func (s *ReservationRequestService) DeleteReservationRequest(reservationRequestID primitive.ObjectID) error {
+func (s *ReservationRequestService) DeleteReservationRequest(reservationRequestID primitive.ObjectID, userID uint) error {
 	reservationRequest := s.Repo.FindReservationRequest(reservationRequestID)
 
 	if reservationRequest == nil {
@@ -91,6 +91,10 @@ func (s *ReservationRequestService) DeleteReservationRequest(reservationRequestI
 
 	if reservationRequest.Status != model.SUBMITTED {
 		return errors.New("Reservation request can not be deleted")
+	}
+
+	if reservationRequest.GuestID != userID {
+		return errors.New("You cannot access given entity.")
 	}
 
 	result := s.Repo.DeleteReservationRequest(reservationRequestID)
