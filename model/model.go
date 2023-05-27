@@ -22,4 +22,5 @@ type ReservationRequest struct {
 	GuestNumber     uint                     `bson:"guestNumber"`
 	Status          ReservationRequestStatus `bson:"status"`
 	OwnerID         uint                     `bson:"ownerID"`
+	ReservedTermId  uint                     `bson:"reservedTermId"`
 }
