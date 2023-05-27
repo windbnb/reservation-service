@@ -5,11 +5,16 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
+	"os"
 	"time"
 )
 
 func ConnectToDatabase() *mongo.Database {
-	var connectionString = "mongodb://user:pass@localhost:27017"
+	connectionString, connectionStringFound := os.LookupEnv("DATABASE_CONNECTION_STRING")
+	if !connectionStringFound {
+		connectionString = "mongodb://user:pass@localhost:27017"
+	}
+
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
