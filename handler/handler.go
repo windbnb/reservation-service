@@ -17,6 +17,12 @@ type Handler struct {
 }
 
 func (h *Handler) CreateReservationRequest(w http.ResponseWriter, r *http.Request) {
+	userResponse := authorizeGuest(r)
+	if userResponse == nil || userResponse.Role != "GUEST" {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(model.ErrorResponse{Message: "user is not a guest", StatusCode: http.StatusUnauthorized})
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 
 	var createReservationRequest *model.CreateReservationRequest
@@ -27,6 +33,7 @@ func (h *Handler) CreateReservationRequest(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	createReservationRequest.GuestID = userResponse.Id
 	reservationRequest, err := h.Service.SaveReservationRequest(createReservationRequest)
 
 	if err != nil {
@@ -49,6 +56,13 @@ func (h *Handler) CreateReservationRequest(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *Handler) GetGuestsActive(w http.ResponseWriter, r *http.Request) {
+	userResponse := authorizeGuest(r)
+	if userResponse.Role != "GUEST" {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(model.ErrorResponse{Message: "user is not a guest", StatusCode: http.StatusUnauthorized})
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 
 	params := mux.Vars(r)
@@ -74,6 +88,13 @@ func (h *Handler) GetGuestsActive(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetOwnersActive(w http.ResponseWriter, r *http.Request) {
+	userResponse := authorizeHost(r)
+	if userResponse.Role != "HOST" {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(model.ErrorResponse{Message: "user is not a host", StatusCode: http.StatusUnauthorized})
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 
 	params := mux.Vars(r)
@@ -99,6 +120,13 @@ func (h *Handler) GetOwnersActive(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DeleteReservationRequest(w http.ResponseWriter, r *http.Request) {
+	userResponse := authorizeGuest(r)
+	if userResponse.Role != "GUEST" {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(model.ErrorResponse{Message: "user is not a guest", StatusCode: http.StatusUnauthorized})
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 
 	params := mux.Vars(r)
@@ -111,7 +139,7 @@ func (h *Handler) DeleteReservationRequest(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err = h.Service.DeleteReservationRequest(objectId)
+	err = h.Service.DeleteReservationRequest(objectId, userResponse.Id)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(model.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
@@ -134,13 +162,7 @@ func (h *Handler) AcceptReservationRequest(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	tokenString := r.Header.Get("Authorization")
-	userResponse, err := client.AuthorizeHost(tokenString)
-	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(model.ErrorResponse{Message: err.Error(), StatusCode: http.StatusUnauthorized})
-		return
-	}
+	userResponse := authorizeHost(r)
 	if userResponse.Role != "HOST" {
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(model.ErrorResponse{Message: "user is not a host", StatusCode: http.StatusUnauthorized})
@@ -165,4 +187,24 @@ func (h *Handler) AcceptReservationRequest(w http.ResponseWriter, r *http.Reques
 		EndDate:         reservation.EndDate}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(reservationRequestsDto)
+}
+
+func authorizeHost(r *http.Request) *model.UserResponseDTO {
+	tokenString := r.Header.Get("Authorization")
+	userResponse, err := client.AuthorizeHost(tokenString)
+	if err != nil {
+		return nil
+	}
+
+	return &userResponse
+}
+
+func authorizeGuest(r *http.Request) *model.UserResponseDTO {
+	tokenString := r.Header.Get("Authorization")
+	userResponse, err := client.AuthorizeGueest(tokenString)
+	if err != nil {
+		return nil
+	}
+
+	return &userResponse
 }
