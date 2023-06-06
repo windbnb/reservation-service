@@ -67,3 +67,7 @@ type ReservedTermResponse struct {
 	AccomodationID uint      `json:"accomodationId"`
 	Id             uint      `json:"id"`
 }
+
+type CancelledReservations struct {
+	Count int `json:"count"`
+}

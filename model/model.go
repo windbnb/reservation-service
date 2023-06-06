@@ -11,6 +11,7 @@ const (
 	SUBMITTED ReservationRequestStatus = "SUBMITTED"
 	ACCEPTED  ReservationRequestStatus = "ACCEPTED"
 	DECLINED  ReservationRequestStatus = "DECLINED"
+	CANCELLED ReservationRequestStatus = "CANCELLED"
 )
 
 type ReservationRequest struct {

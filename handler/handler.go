@@ -189,6 +189,61 @@ func (h *Handler) AcceptReservationRequest(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(reservationRequestsDto)
 }
 
+func (h *Handler) CancelReservationRequest(w http.ResponseWriter, r *http.Request) {
+	userResponse := authorizeGuest(r)
+	if userResponse.Role != "GUEST" {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(model.ErrorResponse{Message: "user is not a guest", StatusCode: http.StatusUnauthorized})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	params := mux.Vars(r)
+	id, _ := params["id"]
+
+	objectId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(model.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+		return
+	}
+
+	_, err = h.Service.CancelReservationRequest(objectId, userResponse.Id)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(model.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *Handler) CountGuestsCancelledReservations(w http.ResponseWriter, r *http.Request) {
+	userResponse := authorizeHost(r)
+	if userResponse.Role != "HOST" {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(model.ErrorResponse{Message: "user is not a host", StatusCode: http.StatusUnauthorized})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	params := mux.Vars(r)
+	guestId, err := strconv.Atoi(params["guestId"])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(model.ErrorResponse{Message: err.Error(), StatusCode: http.StatusBadRequest})
+		return
+	}
+
+	count := h.Service.CountCancelledReservations(uint(guestId))
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(model.CancelledReservations{
+		Count: count})
+}
+
 func authorizeHost(r *http.Request) *model.UserResponseDTO {
 	tokenString := r.Header.Get("Authorization")
 	userResponse, err := client.AuthorizeHost(tokenString)

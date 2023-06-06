@@ -12,5 +12,7 @@ func ConfigureRouter(handler *handler.Handler) *mux.Router {
 	router.HandleFunc("/api/reservationRequest/owner/{id}", handler.GetOwnersActive).Methods("GET")
 	router.HandleFunc("/api/reservationRequest/{id}", handler.DeleteReservationRequest).Methods("DELETE")
 	router.HandleFunc("/api/reservationRequest/{id}", handler.AcceptReservationRequest).Methods("PUT")
+	router.HandleFunc("/api/reservationRequest/{id}/cancel", handler.CancelReservationRequest).Methods("PUT")
+	router.HandleFunc("/api/reservationRequest/{guestId}/cancelled", handler.CountGuestsCancelledReservations).Methods("GET")
 	return router
 }
