@@ -61,7 +61,18 @@ func (s *ReservationRequestService) SaveReservationRequest(createReservationRequ
 		AccommodationID: createReservationRequest.AccommodationID,
 		OwnerID:         accommodationInfo.UserID}
 
-	return s.Repo.SaveReservationRequest(&reservationRequest), nil
+	s.Repo.SaveReservationRequest(&reservationRequest)
+
+	if status == model.ACCEPTED {
+		resp, err := client.CreateReservedTerm(reservationRequest)
+		if err == nil {
+			reservationRequest.ReservedTermId = resp
+			s.Repo.UpdateReservationRequestReservedTerm(&reservationRequest)
+		}
+	}
+
+	return &reservationRequest, nil
+
 }
 
 func (s *ReservationRequestService) isDateInAvailableTerms(date time.Time, availableTerms []model.AvailableTerm) bool {
@@ -102,8 +113,6 @@ func (s *ReservationRequestService) DeleteReservationRequest(reservationRequestI
 		return errors.New("It's not possible to delete reservation request")
 	}
 
-	client.DeleteReservedTerm(reservationRequest.ReservedTermId)
-
 	return nil
 }
 
@@ -127,8 +136,44 @@ func (s *ReservationRequestService) AcceptReservationRequest(reservationRequestI
 	resp, err := client.CreateReservedTerm(*reservationRequest)
 	if err == nil {
 		reservationRequest.ReservedTermId = resp
-		s.Repo.UpdateReservationRequest(reservationRequest)
+		s.Repo.UpdateReservationRequestReservedTerm(reservationRequest)
 	}
 
 	return reservationRequest, nil
+}
+
+func (s *ReservationRequestService) CancelReservationRequest(reservationRequestId primitive.ObjectID, guestId uint) (*model.ReservationRequest, error) {
+	reservationRequest := s.Repo.FindReservationRequest(reservationRequestId)
+	if reservationRequest == nil {
+		return nil, errors.New("Given reservation request does not exist")
+	}
+
+	if reservationRequest.GuestID != guestId {
+		return nil, errors.New("You can not access to this entity")
+	}
+
+	if reservationRequest.Status != model.ACCEPTED {
+		return nil, errors.New("You cannot cancel given reservation request")
+	}
+
+	if reservationRequest.StartDate.Before(time.Now().AddDate(0, -1, 0)) {
+		return nil, errors.New("It is not possible to cancel reservation.")
+	}
+
+	reservationRequest.Status = model.CANCELLED
+	s.Repo.UpdateReservationRequestStatus(reservationRequest)
+
+	resp, err := client.CreateReservedTerm(*reservationRequest)
+	if err == nil {
+		reservationRequest.ReservedTermId = resp
+		s.Repo.UpdateReservationRequestReservedTerm(reservationRequest)
+	}
+
+	client.DeleteReservedTerm(reservationRequest.ReservedTermId)
+
+	return reservationRequest, nil
+}
+
+func (s *ReservationRequestService) CountCancelledReservations(guestId uint) int {
+	return s.Repo.CountGuestsCancelled(guestId)
 }
