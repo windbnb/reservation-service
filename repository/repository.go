@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"github.com/windbnb/reservation-service/model"
+	"github.com/windbnb/reservation-service/tracer"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -13,26 +14,30 @@ type Repository struct {
 	Db *mongo.Database
 }
 
-func (r *Repository) FindAcceptedReservationRequests(accomodationId uint) *[]model.ReservationRequest {
+func (r *Repository) FindAcceptedReservationRequests(accomodationId uint, ctx context.Context) *[]model.ReservationRequest {
+	span := tracer.StartSpanFromContext(ctx, "findReservationRequestsRepository")
+	defer span.Finish()
+
 	reservationRequests := []model.ReservationRequest{}
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	dbCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	filter := bson.D{
 		{"accommodationID", accomodationId},
 		{"status", model.ACCEPTED},
 	}
-	cursor, err := r.Db.Collection("reservation_request").Find(ctx, filter)
 
+	cursor, err := r.Db.Collection("reservation_request").Find(dbCtx, filter)
 	if err != nil {
+		tracer.LogError(span, err)
 		return nil
 	}
-	defer cursor.Close(ctx)
 
-	for cursor.Next(ctx) {
+	for cursor.Next(dbCtx) {
 		var reservationRequest model.ReservationRequest
 		err := cursor.Decode(&reservationRequest)
 		if err != nil {
+			tracer.LogError(span, err)
 			continue
 		}
 
@@ -42,22 +47,29 @@ func (r *Repository) FindAcceptedReservationRequests(accomodationId uint) *[]mod
 	return &reservationRequests
 }
 
-func (r *Repository) SaveReservationRequest(reservationRequest *model.ReservationRequest) *model.ReservationRequest {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+func (r *Repository) SaveReservationRequest(reservationRequest *model.ReservationRequest, ctx context.Context) *model.ReservationRequest {
+	span := tracer.StartSpanFromContext(ctx, "saveReservationRequestRepository")
+	defer span.Finish()
+
+	dbCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	reservationRequest.ID = primitive.NewObjectID()
-	_, err := r.Db.Collection("reservation_request").InsertOne(ctx, &reservationRequest)
+	_, err := r.Db.Collection("reservation_request").InsertOne(dbCtx, &reservationRequest)
 	if err != nil {
+		tracer.LogError(span, err)
 		return nil
 	}
 
 	return reservationRequest
 }
 
-func (r *Repository) FindGuestsActive(guestID uint) *[]model.ReservationRequest {
+func (r *Repository) FindGuestsActive(guestID uint, ctx context.Context) *[]model.ReservationRequest {
+	span := tracer.StartSpanFromContext(ctx, "findGuestsActiveRepository")
+	defer span.Finish()
+
 	reservationRequests := []model.ReservationRequest{}
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	dbCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	filter := bson.D{
@@ -65,17 +77,19 @@ func (r *Repository) FindGuestsActive(guestID uint) *[]model.ReservationRequest 
 		{"status", model.ACCEPTED},
 		{"endDate", bson.D{{"$gte", time.Now()}}},
 	}
-	cursor, err := r.Db.Collection("reservation_request").Find(ctx, filter)
+	cursor, err := r.Db.Collection("reservation_request").Find(dbCtx, filter)
 
 	if err != nil {
+		tracer.LogError(span, err)
 		return nil
 	}
-	defer cursor.Close(ctx)
+	defer cursor.Close(dbCtx)
 
-	for cursor.Next(ctx) {
+	for cursor.Next(dbCtx) {
 		var reservationRequest model.ReservationRequest
 		err := cursor.Decode(&reservationRequest)
 		if err != nil {
+			tracer.LogError(span, err)
 			continue
 		}
 
@@ -85,9 +99,12 @@ func (r *Repository) FindGuestsActive(guestID uint) *[]model.ReservationRequest 
 	return &reservationRequests
 }
 
-func (r *Repository) FindOwnersActive(ownerID uint) *[]model.ReservationRequest {
+func (r *Repository) FindOwnersActive(ownerID uint, ctx context.Context) *[]model.ReservationRequest {
+	span := tracer.StartSpanFromContext(ctx, "findOwnersActiveRepository")
+	defer span.Finish()
+
 	reservationRequests := []model.ReservationRequest{}
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	dbCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	filter := bson.D{
@@ -95,14 +112,15 @@ func (r *Repository) FindOwnersActive(ownerID uint) *[]model.ReservationRequest 
 		{"status", model.ACCEPTED},
 		{"endDate", bson.D{{"$gte", time.Now()}}},
 	}
-	cursor, err := r.Db.Collection("reservation_request").Find(ctx, filter)
+	cursor, err := r.Db.Collection("reservation_request").Find(dbCtx, filter)
 
 	if err != nil {
+		tracer.LogError(span, err)
 		return nil
 	}
-	defer cursor.Close(ctx)
+	defer cursor.Close(dbCtx)
 
-	for cursor.Next(ctx) {
+	for cursor.Next(dbCtx) {
 		var reservationRequest model.ReservationRequest
 		err := cursor.Decode(&reservationRequest)
 		if err != nil {
@@ -115,24 +133,31 @@ func (r *Repository) FindOwnersActive(ownerID uint) *[]model.ReservationRequest 
 	return &reservationRequests
 }
 
-func (r *Repository) DeleteReservationRequest(reservationRequestID primitive.ObjectID) bool {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+func (r *Repository) DeleteReservationRequest(reservationRequestID primitive.ObjectID, ctx context.Context) bool {
+	span := tracer.StartSpanFromContext(ctx, "saveAccomodationRepository")
+	defer span.Finish()
+
+	dbCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	filter := bson.D{
 		{"_id", reservationRequestID},
 	}
 
-	one, err := r.Db.Collection("reservation_request").DeleteOne(ctx, filter)
+	one, err := r.Db.Collection("reservation_request").DeleteOne(dbCtx, filter)
 	if err != nil {
+		tracer.LogError(span, err)
 		return false
 	}
 
 	return one.DeletedCount == 1
 }
 
-func (r *Repository) FindReservationRequest(reservationRequestID primitive.ObjectID) *model.ReservationRequest {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+func (r *Repository) FindReservationRequest(reservationRequestID primitive.ObjectID, ctx context.Context) *model.ReservationRequest {
+	span := tracer.StartSpanFromContext(ctx, "findReservationRequestRepository")
+	defer span.Finish()
+
+	dbCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	filter := bson.D{
@@ -140,16 +165,20 @@ func (r *Repository) FindReservationRequest(reservationRequestID primitive.Objec
 	}
 
 	var reservationRequest model.ReservationRequest
-	err := r.Db.Collection("reservation_request").FindOne(ctx, filter).Decode(&reservationRequest)
+	err := r.Db.Collection("reservation_request").FindOne(dbCtx, filter).Decode(&reservationRequest)
 	if err != nil {
+		tracer.LogError(span, err)
 		return nil
 	}
 
 	return &reservationRequest
 }
 
-func (r *Repository) AcceptReservationRequest(reservationRequest *model.ReservationRequest) *model.ReservationRequest {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+func (r *Repository) AcceptReservationRequest(reservationRequest *model.ReservationRequest, ctx context.Context) *model.ReservationRequest {
+	span := tracer.StartSpanFromContext(ctx, "acceptReservationRequestRepository")
+	defer span.Finish()
+
+	dbCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	filter := bson.D{
@@ -187,54 +216,70 @@ func (r *Repository) AcceptReservationRequest(reservationRequest *model.Reservat
 	declinedReservationRequest := bson.D{{"$set", bson.D{{"status", model.DECLINED}}}}
 	acceptedReservationRequest := bson.D{{"$set", bson.D{{"status", model.ACCEPTED}}}}
 
-	_, err := r.Db.Collection("reservation_request").UpdateMany(ctx, filter, declinedReservationRequest)
-	_, err = r.Db.Collection("reservation_request").UpdateByID(ctx, reservationRequest.ID, acceptedReservationRequest)
+	_, err := r.Db.Collection("reservation_request").UpdateMany(dbCtx, filter, declinedReservationRequest)
+	_, err = r.Db.Collection("reservation_request").UpdateByID(dbCtx, reservationRequest.ID, acceptedReservationRequest)
 	if err != nil {
+		tracer.LogError(span, err)
 		return nil
 	}
 
 	return reservationRequest
 }
 
-func (r *Repository) UpdateReservationRequestReservedTerm(reservationRequest *model.ReservationRequest) *model.ReservationRequest {
+func (r *Repository) UpdateReservationRequestReservedTerm(reservationRequest *model.ReservationRequest, ctx context.Context) *model.ReservationRequest {
+	span := tracer.StartSpanFromContext(ctx, "updateReservationRequestReservedTermRepository")
+	defer span.Finish()
+
 	updateQuery := bson.D{{"$set", bson.D{{"reservedTermId", reservationRequest.ReservedTermId}}}}
-	err := r.updateReservationRequest(reservationRequest, updateQuery)
+	err := r.updateReservationRequest(reservationRequest, updateQuery, ctx)
 	if err != nil {
+		tracer.LogError(span, err)
 		return nil
 	}
 
 	return reservationRequest
 }
 
-func (r *Repository) UpdateReservationRequestStatus(reservationRequest *model.ReservationRequest) *model.ReservationRequest {
+func (r *Repository) UpdateReservationRequestStatus(reservationRequest *model.ReservationRequest, ctx context.Context) *model.ReservationRequest {
+	span := tracer.StartSpanFromContext(ctx, "updateReservationRequestStatusRepository")
+	defer span.Finish()
+
 	updateQuery := bson.D{{"$set", bson.D{{"status", model.CANCELLED}}}}
-	err := r.updateReservationRequest(reservationRequest, updateQuery)
+	err := r.updateReservationRequest(reservationRequest, updateQuery, ctx)
 	if err != nil {
+		tracer.LogError(span, err)
 		return nil
 	}
 
 	return reservationRequest
 }
 
-func (r *Repository) updateReservationRequest(reservationRequest *model.ReservationRequest, updateQuery bson.D) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+func (r *Repository) updateReservationRequest(reservationRequest *model.ReservationRequest, updateQuery bson.D, ctx context.Context) error {
+	span := tracer.StartSpanFromContext(ctx, "updateReservationRequestRepository")
+	defer span.Finish()
+
+	dbCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	_, err := r.Db.Collection("reservation_request").UpdateByID(ctx, reservationRequest.ID, updateQuery)
+	_, err := r.Db.Collection("reservation_request").UpdateByID(dbCtx, reservationRequest.ID, updateQuery)
 	return err
 }
 
-func (r *Repository) CountGuestsCancelled(guestId uint) int {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+func (r *Repository) CountGuestsCancelled(guestId uint, ctx context.Context) int {
+	span := tracer.StartSpanFromContext(ctx, "saveAccomodationRepository")
+	defer span.Finish()
+
+	dbCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	filter := bson.D{
 		{"guestID", guestId},
 		{"status", model.CANCELLED},
 	}
-	count, err := r.Db.Collection("reservation_request").CountDocuments(ctx, filter)
+	count, err := r.Db.Collection("reservation_request").CountDocuments(dbCtx, filter)
 
 	if err != nil {
+		tracer.LogError(span, err)
 		return 0
 	}
 

@@ -2,14 +2,29 @@ package util
 
 import (
 	"net/url"
+	"os"
 
 	roundrobin "github.com/hlts2/round-robin"
 )
 
-var BaseUserServicePathRoundRobin, _ = roundrobin.New(
-	&url.URL{Host: "http://localhost:8081"},
-)
+func GetUserServicePathRoundRobin() (roundrobin.RoundRobin, error) {
+	userServicePath, userServicePathFound := os.LookupEnv("USER_SERVICE_PATH")
+	if !userServicePathFound {
+		userServicePath = "http://localhost:8081"
+	}
 
-var BaseAccommodationServicePathRoundRobin, _ = roundrobin.New(
-	&url.URL{Host: "http://localhost:8082"},
-)
+	return roundrobin.New(
+		&url.URL{Host: userServicePath},
+	)
+}
+
+func GetAccommodationServicePathRoundRobin() (roundrobin.RoundRobin, error) {
+	accommodationServicePath, accommodationServicePathFound := os.LookupEnv("ACCOMMODATION_SERVICE_PATH")
+	if !accommodationServicePathFound {
+		accommodationServicePath = "http://localhost:8082"
+	}
+
+	return roundrobin.New(
+		&url.URL{Host: accommodationServicePath},
+	)
+}
