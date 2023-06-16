@@ -10,7 +10,8 @@ import (
 )
 
 func GetAccommodation(accommodationID uint) (model.AccommodationInfo, error) {
-	url := util.BaseAccommodationServicePathRoundRobin.Next().Host + "/api/accomodation/" + strconv.FormatUint(uint64(accommodationID), 10)
+	accommodationUrl, _ := util.GetAccommodationServicePathRoundRobin()
+	url := accommodationUrl.Next().Host + "/api/accomodation/" + strconv.FormatUint(uint64(accommodationID), 10)
 	req, err := http.NewRequest("GET", url, nil)
 	//req.Header.Add("Authorization", tokenString)
 	client := &http.Client{}
@@ -26,7 +27,8 @@ func GetAccommodation(accommodationID uint) (model.AccommodationInfo, error) {
 }
 
 func CreateReservedTerm(reservationRequest model.ReservationRequest) (uint, error) {
-	url := util.BaseAccommodationServicePathRoundRobin.Next().Host + "/api/accomodation/reservedTerm"
+	accommodationUrl, _ := util.GetAccommodationServicePathRoundRobin()
+	url := accommodationUrl.Next().Host + "/api/accomodation/reservedTerm"
 
 	reservedTerm := model.ReservedTermRequest{
 		StartDate:      reservationRequest.StartDate,
@@ -53,7 +55,8 @@ func CreateReservedTerm(reservationRequest model.ReservationRequest) (uint, erro
 }
 
 func DeleteReservedTerm(reservedTermId uint) {
-	url := util.BaseAccommodationServicePathRoundRobin.Next().Host + "/api/accomodation/reservedTerm" + strconv.FormatUint(uint64(reservedTermId), 10)
+	accommodationUrl, _ := util.GetAccommodationServicePathRoundRobin()
+	url := accommodationUrl.Next().Host + "/api/accomodation/reservedTerm" + strconv.FormatUint(uint64(reservedTermId), 10)
 	req, _ := http.NewRequest("DELETE", url, nil)
 	//req.Header.Add("Authorization", tokenString)
 	client := &http.Client{}

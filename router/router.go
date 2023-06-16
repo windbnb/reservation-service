@@ -3,6 +3,7 @@ package router
 import (
 	"github.com/gorilla/mux"
 	"github.com/windbnb/reservation-service/handler"
+	"github.com/windbnb/reservation-service/metrics"
 )
 
 func ConfigureRouter(handler *handler.Handler) *mux.Router {
@@ -14,5 +15,8 @@ func ConfigureRouter(handler *handler.Handler) *mux.Router {
 	router.HandleFunc("/api/reservationRequest/{id}", handler.AcceptReservationRequest).Methods("PUT")
 	router.HandleFunc("/api/reservationRequest/{id}/cancel", handler.CancelReservationRequest).Methods("PUT")
 	router.HandleFunc("/api/reservationRequest/{guestId}/cancelled", handler.CountGuestsCancelledReservations).Methods("GET")
+
+	router.Path("/metrics").Handler(metrics.MetricsHandler())
+
 	return router
 }

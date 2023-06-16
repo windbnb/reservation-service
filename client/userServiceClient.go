@@ -8,7 +8,8 @@ import (
 )
 
 func AuthorizeHost(tokenString string) (model.UserResponseDTO, error) {
-	url := util.BaseUserServicePathRoundRobin.Next().Host + "/api/users/authorize/host"
+	userUrl, _ := util.GetUserServicePathRoundRobin()
+	url := userUrl.Next().Host + "/api/users/authorize/host"
 	req, err := http.NewRequest("POST", url, nil)
 	req.Header.Add("Authorization", tokenString)
 	client := &http.Client{}
@@ -24,7 +25,8 @@ func AuthorizeHost(tokenString string) (model.UserResponseDTO, error) {
 }
 
 func AuthorizeGueest(tokenString string) (model.UserResponseDTO, error) {
-	url := util.BaseUserServicePathRoundRobin.Next().Host + "/api/users/authorize/guest"
+	userUrl, _ := util.GetUserServicePathRoundRobin()
+	url := userUrl.Next().Host + "/api/users/authorize/guest"
 	req, err := http.NewRequest("POST", url, nil)
 	req.Header.Add("Authorization", tokenString)
 	client := &http.Client{}
