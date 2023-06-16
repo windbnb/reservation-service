@@ -219,16 +219,17 @@ func TestDeleteReservationRequest_WrongStatus_Integration(t *testing.T) {
 	// Given
 	db := util.ConnectToDatabase()
 
-	repository := &repository.Repository{
+	repo := &repository.Repository{
 		Db: db,
 	}
 	reservationService := service.ReservationRequestService{
-		Repo: repository,
+		Repo: repo,
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	savedReservationRequest := repository.SaveReservationRequest(&model.ReservationRequest{
+	savedReservationRequest := repo.SaveReservationRequest(&model.ReservationRequest{
 		ID:              primitive.NewObjectID(),
 		StartDate:       time.Now(),
 		EndDate:         time.Now(),
@@ -248,20 +249,21 @@ func TestDeleteReservationRequest_WrongStatus_Integration(t *testing.T) {
 	assert.EqualError(t, errors.New("Reservation request can not be deleted - only reservation request with status SUBMITTED can be deleted."), reservationRequest.Error())
 }
 
-func TestDeleteReservationRequest_Sucessfully_Integration(t *testing.T) {
+func TestDeleteReservationRequest_Successfully_Integration(t *testing.T) {
 	// Given
 	db := util.ConnectToDatabase()
 
-	repository := &repository.Repository{
+	repo := &repository.Repository{
 		Db: db,
 	}
 	reservationService := service.ReservationRequestService{
-		Repo: repository,
+		Repo: repo,
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	savedReservationRequest := repository.SaveReservationRequest(&model.ReservationRequest{
+	savedReservationRequest := repo.SaveReservationRequest(&model.ReservationRequest{
 		ID:              primitive.NewObjectID(),
 		StartDate:       time.Now(),
 		EndDate:         time.Now(),
