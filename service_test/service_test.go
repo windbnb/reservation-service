@@ -7,6 +7,7 @@ import (
 	"github.com/windbnb/reservation-service/model"
 	"github.com/windbnb/reservation-service/repository"
 	"github.com/windbnb/reservation-service/service"
+	"github.com/windbnb/reservation-service/util"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"testing"
 	"time"
@@ -194,6 +195,89 @@ func TestDeleteReservationRequest_Successfully(t *testing.T) {
 
 	reservationRequest := reservationService.DeleteReservationRequest(primitive.NewObjectID(), 1, context.Background())
 
+	assert.Equal(t, nil, reservationRequest)
+}
+
+func TestDeleteReservationRequest_DoesNotExist_Integration(t *testing.T) {
+	// Given
+	db := util.ConnectToDatabase()
+
+	reservationService := service.ReservationRequestService{
+		Repo: &repository.Repository{
+			Db: db,
+		},
+	}
+
+	// When
+	reservationRequest := reservationService.DeleteReservationRequest(primitive.NewObjectIDFromTimestamp(time.Now()), 1, context.Background())
+
+	// Then
+	assert.EqualError(t, errors.New("Reservation request with given id does not exist."), reservationRequest.Error())
+}
+
+func TestDeleteReservationRequest_WrongStatus_Integration(t *testing.T) {
+	// Given
+	db := util.ConnectToDatabase()
+
+	repository := &repository.Repository{
+		Db: db,
+	}
+	reservationService := service.ReservationRequestService{
+		Repo: repository,
+	}
+
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+
+	savedReservationRequest := repository.SaveReservationRequest(&model.ReservationRequest{
+		ID:              primitive.NewObjectID(),
+		StartDate:       time.Now(),
+		EndDate:         time.Now(),
+		AccommodationID: 1,
+		GuestID:         1,
+		GuestNumber:     3,
+		Status:          model.ACCEPTED,
+		OwnerID:         1,
+		ReservedTermId:  1,
+	}, ctx)
+	objectId := savedReservationRequest.ID
+
+	// When
+	reservationRequest := reservationService.DeleteReservationRequest(objectId, 1, context.Background())
+
+	// Then
+	assert.EqualError(t, errors.New("Reservation request can not be deleted - only reservation request with status SUBMITTED can be deleted."), reservationRequest.Error())
+}
+
+func TestDeleteReservationRequest_Sucessfully_Integration(t *testing.T) {
+	// Given
+	db := util.ConnectToDatabase()
+
+	repository := &repository.Repository{
+		Db: db,
+	}
+	reservationService := service.ReservationRequestService{
+		Repo: repository,
+	}
+
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+
+	savedReservationRequest := repository.SaveReservationRequest(&model.ReservationRequest{
+		ID:              primitive.NewObjectID(),
+		StartDate:       time.Now(),
+		EndDate:         time.Now(),
+		AccommodationID: 1,
+		GuestID:         1,
+		GuestNumber:     3,
+		Status:          model.SUBMITTED,
+		OwnerID:         1,
+		ReservedTermId:  1,
+	}, ctx)
+	objectId := savedReservationRequest.ID
+
+	// When
+	reservationRequest := reservationService.DeleteReservationRequest(objectId, 1, context.Background())
+
+	// Then
 	assert.Equal(t, nil, reservationRequest)
 }
 
