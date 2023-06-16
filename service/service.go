@@ -15,7 +15,7 @@ import (
 var accommodationServiceUrl = os.Getenv("accommodationServiceUrl") + "/api/accomodation/"
 
 type ReservationRequestService struct {
-	Repo *repository.Repository
+	Repo repository.IRepository
 }
 
 func (s *ReservationRequestService) SaveReservationRequest(createReservationRequest *model.CreateReservationRequest, ctx context.Context) (*model.ReservationRequest, error) {
@@ -128,8 +128,8 @@ func (s *ReservationRequestService) DeleteReservationRequest(reservationRequestI
 	}
 
 	if reservationRequest.Status != model.SUBMITTED {
-		tracer.LogError(span, errors.New("Reservation request can not be deleted - already submitted."))
-		return errors.New("Reservation request can not be deleted - already submitted")
+		tracer.LogError(span, errors.New("Reservation request can not be deleted - only reservation request with status SUBMITTED can be deleted."))
+		return errors.New("Reservation request can not be deleted - only reservation request with status SUBMITTED can be deleted.")
 	}
 
 	if reservationRequest.GuestID != userID {

@@ -10,6 +10,19 @@ import (
 	"time"
 )
 
+type IRepository interface {
+	FindAcceptedReservationRequests(accomodationId uint, ctx context.Context) *[]model.ReservationRequest
+	SaveReservationRequest(reservationRequest *model.ReservationRequest, ctx context.Context) *model.ReservationRequest
+	FindGuestsActive(guestID uint, ctx context.Context) *[]model.ReservationRequest
+	FindOwnersActive(ownerID uint, ctx context.Context) *[]model.ReservationRequest
+	DeleteReservationRequest(reservationRequestID primitive.ObjectID, ctx context.Context) bool
+	FindReservationRequest(reservationRequestID primitive.ObjectID, ctx context.Context) *model.ReservationRequest
+	AcceptReservationRequest(reservationRequest *model.ReservationRequest, ctx context.Context) *model.ReservationRequest
+	UpdateReservationRequestReservedTerm(reservationRequest *model.ReservationRequest, ctx context.Context) *model.ReservationRequest
+	UpdateReservationRequestStatus(reservationRequest *model.ReservationRequest, ctx context.Context) *model.ReservationRequest
+	CountGuestsCancelled(guestId uint, ctx context.Context) int
+}
+
 type Repository struct {
 	Db *mongo.Database
 }
