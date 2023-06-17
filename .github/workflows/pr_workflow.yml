@@ -39,6 +39,6 @@ jobs:
 
             - name: Test
               env:
-                DATABASE_CONNECTION_STRING: mongodb://user:pass@mongodb:27017
+                DATABASE_CONNECTION_STRING: mongodb://user:pass@localhost:27017
                 SERVICE_PATH: 0.0.0.0:8083
               run: go test -v ./...
