@@ -1,0 +1,52 @@
+version: "3"
+
+x-logging: &fluent-bit
+  driver: fluentd
+  options:
+    fluentd-address:  172.21.0.3:24224
+
+services:
+  database:
+    image: mongo
+    restart: always
+    networks:
+      - servers
+      - monitoring
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=user
+      - MONGO_INITDB_ROOT_PASSWORD=pass
+    ports:
+      - "27017:27017"
+    volumes:
+      - './database-data:/data/db'
+    logging: *fluent-bit
+
+  reservation-service:
+    build: .
+    restart: on-failure
+    networks:
+      - servers
+      - monitoring
+    container_name: reservation-service
+    environment:
+      DATABASE_CONNECTION_STRING: mongodb://user:pass@database:27017
+      USER_SERVICE_PATH: http://user-service:8081
+      ACCOMMODATION_SERVICE_PATH: http://accomodation-service:8082
+      SERVICE_PATH: 0.0.0.0:8083
+      JAEGER_SERVICE_NAME: reservation-service
+      JAEGER_AGENT_HOST: jaeger
+      JAEGER_AGENT_PORT: 6831
+      JAEGER_SAMPLER_MANAGER_HOST_PORT: jaeger:5778
+      JAEGER_SAMPLER_TYPE: const
+      JAEGER_SAMPLER_PARAM: 1
+    ports:
+      - "8083:8083"
+    logging: *fluent-bit
+    depends_on:
+      - database
+
+networks:
+  servers:
+    external: true
+  monitoring:
+    external: true
