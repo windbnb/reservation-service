@@ -7,7 +7,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"log"
 	"time"
 )
 
@@ -71,7 +70,6 @@ func (r *Repository) SaveReservationRequest(reservationRequest *model.Reservatio
 	reservationRequest.ID = primitive.NewObjectID()
 	_, err := r.Db.Collection("reservation_request").InsertOne(dbCtx, &reservationRequest)
 	if err != nil {
-		log.Println(err)
 		tracer.LogError(span, err)
 		return nil
 	}
