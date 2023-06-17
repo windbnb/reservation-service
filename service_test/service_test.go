@@ -9,6 +9,7 @@ import (
 	"github.com/windbnb/reservation-service/service"
 	"github.com/windbnb/reservation-service/util"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"log"
 	"testing"
 	"time"
 )
@@ -240,6 +241,7 @@ func TestDeleteReservationRequest_WrongStatus_Integration(t *testing.T) {
 		OwnerID:         1,
 		ReservedTermId:  1,
 	}, ctx)
+	log.Println(savedReservationRequest)
 	objectId := savedReservationRequest.ID
 
 	// When

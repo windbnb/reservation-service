@@ -20,23 +20,16 @@ jobs:
         runs-on: ubuntu-latest
         needs: build
 
-#        services:
-#            mongodb:
-#              image: mongo
-#              env:
-#                MONGO_INITDB_ROOT_USERNAME: user
-#                MONGO_INITDB_ROOT_PASSWORD: pass
-#              ports:
-#                - 27017:27017
+        services:
+            mongodb:
+              image: mongo
+              env:
+                MONGO_INITDB_ROOT_USERNAME: user
+                MONGO_INITDB_ROOT_PASSWORD: pass
+              ports:
+                - 27017:27017
 
         steps:
-            - name: Start MongoDB
-              uses: supercharge/mongodb-github-action@1.8.0
-              with:
-                mongodb-username: user
-                mongodb-password: pass
-
-
             - uses: actions/checkout@v3
 
             - name: Set up Go
