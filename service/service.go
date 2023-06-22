@@ -3,13 +3,14 @@ package service
 import (
 	"context"
 	"errors"
+	"os"
+	"time"
+
 	"github.com/windbnb/reservation-service/client"
 	"github.com/windbnb/reservation-service/model"
 	"github.com/windbnb/reservation-service/repository"
 	"github.com/windbnb/reservation-service/tracer"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"os"
-	"time"
 )
 
 var accommodationServiceUrl = os.Getenv("accommodationServiceUrl") + "/api/accomodation/"
@@ -103,6 +104,24 @@ func (s *ReservationRequestService) GetGuestActiveReservations(guestID uint, ctx
 	ctx = tracer.ContextWithSpan(context.Background(), span)
 
 	return s.Repo.FindGuestsActive(guestID, ctx)
+}
+
+func (s *ReservationRequestService) GetWheatherGuestWasWithHost(guestID uint, ownerID uint, ctx context.Context) bool {
+	span := tracer.StartSpanFromContext(ctx, "getWheatherGuestWasWithHost")
+	defer span.Finish()
+
+	ctx = tracer.ContextWithSpan(context.Background(), span)
+
+	return s.Repo.FindGuestWithHost(guestID, ownerID, ctx)
+}
+
+func (s *ReservationRequestService) GetWheatherGuestWasInAccomodation(guestID uint, accomodationId uint, ctx context.Context) bool {
+	span := tracer.StartSpanFromContext(ctx, "getWheatherGuestWasInAccomodation")
+	defer span.Finish()
+
+	ctx = tracer.ContextWithSpan(context.Background(), span)
+
+	return s.Repo.FindGuestInAccomodation(guestID, accomodationId, ctx)
 }
 
 func (s *ReservationRequestService) GetOwnersActiveReservations(ownerID uint, ctx context.Context) *[]model.ReservationRequest {
