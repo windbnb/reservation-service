@@ -7,6 +7,7 @@ require (
 	github.com/hlts2/round-robin v0.0.0-20211119053418-5ea74e1f7bfc
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/prometheus/client_golang v1.15.1
+	github.com/rs/cors v1.9.0
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
 	github.com/uber/jaeger-lib v2.4.1+incompatible
 	go.mongodb.org/mongo-driver v1.11.6

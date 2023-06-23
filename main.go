@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"github.com/opentracing/opentracing-go"
+	"github.com/rs/cors"
 	"github.com/windbnb/reservation-service/tracer"
 	"log"
 	"net/http"
@@ -36,7 +37,15 @@ func main() {
 		servicePath = "localhost:8083"
 	}
 
-	srv := &http.Server{Addr: servicePath, Handler: router}
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3005"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowCredentials: true,
+		Debug:            true,
+		AllowedHeaders:   []string{"Accept", "Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization"},
+	})
+	srv := &http.Server{Addr: servicePath, Handler: c.Handler(router)}
+
 	go func() {
 		log.Println("server starting")
 		if err := srv.ListenAndServe(); err != nil {

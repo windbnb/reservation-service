@@ -61,13 +61,14 @@ func (h *Handler) CreateReservationRequest(w http.ResponseWriter, r *http.Reques
 	}
 
 	var reservationRequestDto = model.ReservationRequestDto{
-		ID:              reservationRequest.ID.Hex(),
-		Status:          reservationRequest.Status,
-		GuestNumber:     reservationRequest.GuestNumber,
-		GuestID:         reservationRequest.GuestID,
-		AccommodationID: reservationRequest.AccommodationID,
-		StartDate:       reservationRequest.StartDate,
-		EndDate:         reservationRequest.EndDate}
+		ID:                reservationRequest.ID.Hex(),
+		Status:            reservationRequest.Status,
+		GuestNumber:       reservationRequest.GuestNumber,
+		GuestID:           reservationRequest.GuestID,
+		AccommodationID:   reservationRequest.AccommodationID,
+		StartDate:         reservationRequest.StartDate,
+		EndDate:           reservationRequest.EndDate,
+		AccommodationName: reservationRequest.AccommodationName}
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(reservationRequestDto)
@@ -100,13 +101,14 @@ func (h *Handler) GetGuestsActive(w http.ResponseWriter, r *http.Request) {
 
 	for _, reservationRequest := range *activeReservations {
 		reservationRequestsDto = append(reservationRequestsDto, model.ReservationRequestDto{
-			ID:              reservationRequest.ID.Hex(),
-			Status:          reservationRequest.Status,
-			GuestNumber:     reservationRequest.GuestNumber,
-			GuestID:         reservationRequest.GuestID,
-			AccommodationID: reservationRequest.AccommodationID,
-			StartDate:       reservationRequest.StartDate,
-			EndDate:         reservationRequest.EndDate})
+			ID:                reservationRequest.ID.Hex(),
+			Status:            reservationRequest.Status,
+			GuestNumber:       reservationRequest.GuestNumber,
+			GuestID:           reservationRequest.GuestID,
+			AccommodationID:   reservationRequest.AccommodationID,
+			StartDate:         reservationRequest.StartDate,
+			EndDate:           reservationRequest.EndDate,
+			AccommodationName: reservationRequest.AccommodationName})
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -140,13 +142,14 @@ func (h *Handler) GetOwnersActive(w http.ResponseWriter, r *http.Request) {
 
 	for _, reservationRequest := range *activeReservations {
 		reservationRequestsDto = append(reservationRequestsDto, model.ReservationRequestDto{
-			ID:              reservationRequest.ID.Hex(),
-			Status:          reservationRequest.Status,
-			GuestNumber:     reservationRequest.GuestNumber,
-			GuestID:         reservationRequest.GuestID,
-			AccommodationID: reservationRequest.AccommodationID,
-			StartDate:       reservationRequest.StartDate,
-			EndDate:         reservationRequest.EndDate})
+			ID:                reservationRequest.ID.Hex(),
+			Status:            reservationRequest.Status,
+			GuestNumber:       reservationRequest.GuestNumber,
+			GuestID:           reservationRequest.GuestID,
+			AccommodationID:   reservationRequest.AccommodationID,
+			StartDate:         reservationRequest.StartDate,
+			EndDate:           reservationRequest.EndDate,
+			AccommodationName: reservationRequest.AccommodationName})
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -232,13 +235,14 @@ func (h *Handler) AcceptReservationRequest(w http.ResponseWriter, r *http.Reques
 	}
 
 	reservationRequestsDto := model.ReservationRequestDto{
-		ID:              reservation.ID.Hex(),
-		Status:          reservation.Status,
-		GuestNumber:     reservation.GuestNumber,
-		GuestID:         reservation.GuestID,
-		AccommodationID: reservation.AccommodationID,
-		StartDate:       reservation.StartDate,
-		EndDate:         reservation.EndDate}
+		ID:                reservation.ID.Hex(),
+		Status:            reservation.Status,
+		GuestNumber:       reservation.GuestNumber,
+		GuestID:           reservation.GuestID,
+		AccommodationID:   reservation.AccommodationID,
+		StartDate:         reservation.StartDate,
+		EndDate:           reservation.EndDate,
+		AccommodationName: reservation.AccommodationName}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(reservationRequestsDto)
 }
@@ -315,6 +319,129 @@ func (h *Handler) CountGuestsCancelledReservations(w http.ResponseWriter, r *htt
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(model.CancelledReservations{
 		Count: count})
+}
+
+func (h *Handler) GetGuestsReservations(w http.ResponseWriter, r *http.Request) {
+	span := tracer.StartSpanFromRequest("getGuestsReservationsHandler", h.Tracer, r)
+	defer span.Finish()
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling get guests all reservations at %s\n", r.URL.Path)),
+	)
+	ctx := tracer.ContextWithSpan(context.Background(), span)
+
+	userResponse := h.authorizeGuest(r)
+	if userResponse.Role != "GUEST" {
+		tracer.LogError(span, errors.New("Unauthorized"))
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(model.ErrorResponse{Message: "user is not a guest", StatusCode: http.StatusUnauthorized})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	params := mux.Vars(r)
+	guestID, _ := strconv.Atoi(params["id"])
+
+	activeReservations := h.Service.GetGuestAllReservations(uint(guestID), ctx)
+
+	reservationRequestsDto := []model.ReservationRequestDto{}
+
+	for _, reservationRequest := range *activeReservations {
+		reservationRequestsDto = append(reservationRequestsDto, model.ReservationRequestDto{
+			ID:                reservationRequest.ID.Hex(),
+			Status:            reservationRequest.Status,
+			GuestNumber:       reservationRequest.GuestNumber,
+			GuestID:           reservationRequest.GuestID,
+			AccommodationID:   reservationRequest.AccommodationID,
+			StartDate:         reservationRequest.StartDate,
+			EndDate:           reservationRequest.EndDate,
+			AccommodationName: reservationRequest.AccommodationName})
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(reservationRequestsDto)
+}
+
+func (h *Handler) GetOwnersSubmitted(w http.ResponseWriter, r *http.Request) {
+	span := tracer.StartSpanFromRequest("getOwnersSubmittedHandler", h.Tracer, r)
+	defer span.Finish()
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling get owners submitted reservations at %s\n", r.URL.Path)),
+	)
+	ctx := tracer.ContextWithSpan(context.Background(), span)
+
+	userResponse := h.authorizeHost(r)
+	if userResponse.Role != "HOST" {
+		tracer.LogError(span, errors.New("Unauthorized"))
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(model.ErrorResponse{Message: "user is not a host", StatusCode: http.StatusUnauthorized})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	params := mux.Vars(r)
+	guestID, _ := strconv.Atoi(params["id"])
+
+	activeReservations := h.Service.GetOwnersSubmittedReservations(uint(guestID), ctx)
+
+	reservationRequestsDto := []model.ReservationRequestDto{}
+
+	for _, reservationRequest := range *activeReservations {
+		reservationRequestsDto = append(reservationRequestsDto, model.ReservationRequestDto{
+			ID:                reservationRequest.ID.Hex(),
+			Status:            reservationRequest.Status,
+			GuestNumber:       reservationRequest.GuestNumber,
+			GuestID:           reservationRequest.GuestID,
+			AccommodationID:   reservationRequest.AccommodationID,
+			StartDate:         reservationRequest.StartDate,
+			EndDate:           reservationRequest.EndDate,
+			AccommodationName: reservationRequest.AccommodationName})
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(reservationRequestsDto)
+}
+
+func (h *Handler) GetOwnersAll(w http.ResponseWriter, r *http.Request) {
+	span := tracer.StartSpanFromRequest("getOwnersAllHandler", h.Tracer, r)
+	defer span.Finish()
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling get owners all reservations at %s\n", r.URL.Path)),
+	)
+	ctx := tracer.ContextWithSpan(context.Background(), span)
+
+	userResponse := h.authorizeHost(r)
+	if userResponse.Role != "HOST" {
+		tracer.LogError(span, errors.New("Unauthorized"))
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(model.ErrorResponse{Message: "user is not a host", StatusCode: http.StatusUnauthorized})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	params := mux.Vars(r)
+	guestID, _ := strconv.Atoi(params["id"])
+
+	activeReservations := h.Service.GetOwnersAllReservations(uint(guestID), ctx)
+
+	reservationRequestsDto := []model.ReservationRequestDto{}
+
+	for _, reservationRequest := range *activeReservations {
+		reservationRequestsDto = append(reservationRequestsDto, model.ReservationRequestDto{
+			ID:                reservationRequest.ID.Hex(),
+			Status:            reservationRequest.Status,
+			GuestNumber:       reservationRequest.GuestNumber,
+			GuestID:           reservationRequest.GuestID,
+			AccommodationID:   reservationRequest.AccommodationID,
+			StartDate:         reservationRequest.StartDate,
+			EndDate:           reservationRequest.EndDate,
+			AccommodationName: reservationRequest.AccommodationName})
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(reservationRequestsDto)
 }
 
 func (h *Handler) authorizeHost(r *http.Request) *model.UserResponseDTO {

@@ -21,6 +21,7 @@ type AccommodationInfo struct {
 	AvailableTerms        []AvailableTerm       `json:"availableTerms"`
 	UserID                uint                  `json:"userID"`
 	AcceptReservationType AcceptReservationType `json:"acceptReservationType"`
+	Name                  string                `json:"name"`
 }
 
 type AvailableTerm struct {
@@ -29,13 +30,14 @@ type AvailableTerm struct {
 }
 
 type ReservationRequestDto struct {
-	Status          ReservationRequestStatus `json:"status"`
-	GuestID         uint                     `json:"guestID"`
-	AccommodationID uint                     `json:"accommodationID"`
-	StartDate       time.Time                `json:"startDate"`
-	EndDate         time.Time                `json:"endDate"`
-	GuestNumber     uint                     `json:"guestNumber"`
-	ID              string                   `json:"id"`
+	Status            ReservationRequestStatus `json:"status"`
+	GuestID           uint                     `json:"guestID"`
+	AccommodationID   uint                     `json:"accommodationID"`
+	StartDate         time.Time                `json:"startDate"`
+	EndDate           time.Time                `json:"endDate"`
+	GuestNumber       uint                     `json:"guestNumber"`
+	ID                string                   `json:"id"`
+	AccommodationName string                   `json:"accommodationName"`
 }
 
 type UserRole string
