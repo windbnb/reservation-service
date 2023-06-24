@@ -124,22 +124,13 @@ func (s *ReservationRequestService) GetOwnersActiveReservations(ownerID uint, ct
 	return s.Repo.FindOwnersActive(ownerID, ctx)
 }
 
-func (s *ReservationRequestService) GetOwnersSubmittedReservations(ownerID uint, ctx context.Context) *[]model.ReservationRequest {
-	span := tracer.StartSpanFromContext(ctx, "getOwnersSubmittedReservationsService")
-	defer span.Finish()
-
-	ctx = tracer.ContextWithSpan(context.Background(), span)
-
-	return s.Repo.FindOwnersSubmitted(ownerID, ctx)
-}
-
-func (s *ReservationRequestService) GetOwnersAllReservations(ownerID uint, ctx context.Context) *[]model.ReservationRequest {
+func (s *ReservationRequestService) GetOwnersAllReservations(ownerID uint, ctx context.Context, status []model.ReservationRequestStatus) *[]model.ReservationRequest {
 	span := tracer.StartSpanFromContext(ctx, "getOwnersAllReservationsService")
 	defer span.Finish()
 
 	ctx = tracer.ContextWithSpan(context.Background(), span)
 
-	return s.Repo.FindOwnersAll(ownerID, ctx)
+	return s.Repo.FindOwnersReservations(ownerID, ctx, status)
 }
 
 func (s *ReservationRequestService) DeleteReservationRequest(reservationRequestID primitive.ObjectID, userID uint, ctx context.Context) error {

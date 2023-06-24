@@ -199,7 +199,7 @@ func (r *Repository) FindOwnersSubmitted(ownerID uint, ctx context.Context) *[]m
 	return &reservationRequests
 }
 
-func (r *Repository) FindOwnersAll(ownerID uint, ctx context.Context) *[]model.ReservationRequest {
+func (r *Repository) FindOwnersReservations(ownerID uint, ctx context.Context, status []model.ReservationRequestStatus) *[]model.ReservationRequest {
 	span := tracer.StartSpanFromContext(ctx, "findOwnersSubmittedRepository")
 	defer span.Finish()
 
@@ -209,6 +209,7 @@ func (r *Repository) FindOwnersAll(ownerID uint, ctx context.Context) *[]model.R
 
 	filter := bson.D{
 		{"ownerID", ownerID},
+		{"status", bson.D{{"$in", status}}},
 	}
 	cursor, err := r.Db.Collection("reservation_request").Find(dbCtx, filter)
 
