@@ -5,14 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"strconv"
+
 	"github.com/gorilla/mux"
 	"github.com/opentracing/opentracing-go"
 	"github.com/windbnb/reservation-service/client"
 	"github.com/windbnb/reservation-service/tracer"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"io"
-	"net/http"
-	"strconv"
 
 	"github.com/windbnb/reservation-service/model"
 	"github.com/windbnb/reservation-service/service"
@@ -22,6 +23,14 @@ type Handler struct {
 	Service *service.ReservationRequestService
 	Tracer  opentracing.Tracer
 	Closer  io.Closer
+}
+
+func (handler *Handler) Healthcheck(w http.ResponseWriter, _ *http.Request) {
+    _, _ = fmt.Fprintln(w, "Healthy!")
+}
+
+func (handler *Handler) Ready(w http.ResponseWriter, _ *http.Request) {
+    _, _ = fmt.Fprintln(w, "Ready!")
 }
 
 func (h *Handler) CreateReservationRequest(w http.ResponseWriter, r *http.Request) {

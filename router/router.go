@@ -18,5 +18,8 @@ func ConfigureRouter(handler *handler.Handler) *mux.Router {
 
 	router.Path("/metrics").Handler(metrics.MetricsHandler())
 
+	router.HandleFunc("/probe/liveness", handler.Healthcheck)
+	router.HandleFunc("/probe/readiness", handler.Ready)
+
 	return router
 }
