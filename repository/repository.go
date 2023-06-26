@@ -21,6 +21,8 @@ type IRepository interface {
 	UpdateReservationRequestReservedTerm(reservationRequest *model.ReservationRequest, ctx context.Context) *model.ReservationRequest
 	UpdateReservationRequestStatus(reservationRequest *model.ReservationRequest, ctx context.Context) *model.ReservationRequest
 	CountGuestsCancelled(guestId uint, ctx context.Context) int
+	FindGuestsAllReservations(guestID uint, ctx context.Context) *[]model.ReservationRequest
+	FindOwnersReservations(ownerID uint, ctx context.Context, status []model.ReservationRequestStatus) *[]model.ReservationRequest
 }
 
 type Repository struct {
