@@ -116,6 +116,7 @@ func (s *ReservationRequestService) GetWheatherGuestWasInAccomodation(guestID ui
 	return s.Repo.FindGuestInAccomodation(guestID, accomodationId, ctx)
 }
 
+
 func (s *ReservationRequestService) GetGuestActiveReservations(guestID uint, ctx context.Context) *[]model.ReservationRequest {
 	span := tracer.StartSpanFromContext(ctx, "getGuestActiveReservationsService")
 	defer span.Finish()

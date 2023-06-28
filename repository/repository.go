@@ -207,7 +207,6 @@ func (r *Repository) FindOwnersActive(ownerID uint, ctx context.Context) *[]mode
 	return &reservationRequests
 }
 
-
 func (r *Repository) FindGuestsActivePast(guestID uint, ownerID uint, ctx context.Context) bool {
 	span := tracer.StartSpanFromContext(ctx, "findGuestsActivePastRepository")
 	defer span.Finish()
