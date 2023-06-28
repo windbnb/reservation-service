@@ -2,12 +2,13 @@ package repository
 
 import (
 	"context"
+	"time"
+
 	"github.com/windbnb/reservation-service/model"
 	"github.com/windbnb/reservation-service/tracer"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"time"
 )
 
 type IRepository interface {
@@ -21,6 +22,10 @@ type IRepository interface {
 	UpdateReservationRequestReservedTerm(reservationRequest *model.ReservationRequest, ctx context.Context) *model.ReservationRequest
 	UpdateReservationRequestStatus(reservationRequest *model.ReservationRequest, ctx context.Context) *model.ReservationRequest
 	CountGuestsCancelled(guestId uint, ctx context.Context) int
+	FindGuestWithHost(guestID uint, ownerID uint, ctx context.Context) bool
+	FindGuestInAccomodation(guestID uint, accomodationID uint, ctx context.Context) bool
+	FindGuestsAllReservations(guestID uint, ctx context.Context) *[]model.ReservationRequest
+	FindOwnersReservations(ownerID uint, ctx context.Context, status []model.ReservationRequestStatus) *[]model.ReservationRequest
 }
 
 type Repository struct {
@@ -112,6 +117,62 @@ func (r *Repository) FindGuestsActive(guestID uint, ctx context.Context) *[]mode
 	return &reservationRequests
 }
 
+func (r *Repository) FindGuestWithHost(guestID uint, ownerID uint, ctx context.Context) bool {
+	span := tracer.StartSpanFromContext(ctx, "findGuestWithHostRepository")
+	defer span.Finish()
+
+	dbCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	filter := bson.D{
+		{"guestID", guestID},
+		{"ownerID", ownerID},
+		{"status", model.ACCEPTED},
+		{"endDate", bson.D{{"$lt", time.Now()}}},
+	}
+	cursor, err := r.Db.Collection("reservation_request").Find(dbCtx, filter)
+
+	if err != nil {
+		tracer.LogError(span, err)
+		return false
+	}
+	defer cursor.Close(dbCtx)
+
+	for cursor.Next(dbCtx) {
+		return true;
+	}
+
+	return false
+}
+
+func (r *Repository) FindGuestInAccomodation(guestID uint, accomodationID uint, ctx context.Context) bool {
+	span := tracer.StartSpanFromContext(ctx, "findGuestInAccomodationRepository")
+	defer span.Finish()
+
+	dbCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	filter := bson.D{
+		{"guestID", guestID},
+		{"accommodationID", accomodationID},
+		{"status", model.ACCEPTED},
+		{"endDate", bson.D{{"$lt", time.Now()}}},
+	}
+	cursor, err := r.Db.Collection("reservation_request").Find(dbCtx, filter)
+
+	if err != nil {
+		tracer.LogError(span, err)
+		return false
+	}
+	defer cursor.Close(dbCtx)
+
+	for cursor.Next(dbCtx) {
+		return true;
+	}
+
+	return false
+}
+
 func (r *Repository) FindOwnersActive(ownerID uint, ctx context.Context) *[]model.ReservationRequest {
 	span := tracer.StartSpanFromContext(ctx, "findOwnersActiveRepository")
 	defer span.Finish()
@@ -124,6 +185,133 @@ func (r *Repository) FindOwnersActive(ownerID uint, ctx context.Context) *[]mode
 		{"ownerID", ownerID},
 		{"status", model.ACCEPTED},
 		{"endDate", bson.D{{"$gte", time.Now()}}},
+	}
+	cursor, err := r.Db.Collection("reservation_request").Find(dbCtx, filter)
+
+	if err != nil {
+		tracer.LogError(span, err)
+		return nil
+	}
+	defer cursor.Close(dbCtx)
+
+	for cursor.Next(dbCtx) {
+		var reservationRequest model.ReservationRequest
+		err := cursor.Decode(&reservationRequest)
+		if err != nil {
+			continue
+		}
+
+		reservationRequests = append(reservationRequests, reservationRequest)
+	}
+
+	return &reservationRequests
+}
+
+func (r *Repository) FindGuestsActivePast(guestID uint, ownerID uint, ctx context.Context) bool {
+	span := tracer.StartSpanFromContext(ctx, "findGuestsActivePastRepository")
+	defer span.Finish()
+
+	dbCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	filter := bson.D{
+		{"guestID", guestID},
+		{"ownerID", ownerID},
+		{"status", model.ACCEPTED},
+		{"endDate", bson.D{{"$lt", time.Now()}}},
+	}
+	cursor, err := r.Db.Collection("reservation_request").Find(dbCtx, filter)
+
+	if err != nil {
+		tracer.LogError(span, err)
+		return false
+	}
+	defer cursor.Close(dbCtx)
+
+	for cursor.Next(dbCtx) {
+		return true;
+	}
+
+	return false
+}
+
+func (r *Repository) FindGuestsAllReservations(guestID uint, ctx context.Context) *[]model.ReservationRequest {
+	span := tracer.StartSpanFromContext(ctx, "findGuestsAllRepository")
+	defer span.Finish()
+
+	reservationRequests := []model.ReservationRequest{}
+	dbCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	filter := bson.D{
+		{"guestID", guestID},
+	}
+	cursor, err := r.Db.Collection("reservation_request").Find(dbCtx, filter)
+
+	if err != nil {
+		tracer.LogError(span, err)
+		return nil
+	}
+	defer cursor.Close(dbCtx)
+
+	for cursor.Next(dbCtx) {
+		var reservationRequest model.ReservationRequest
+		err := cursor.Decode(&reservationRequest)
+		if err != nil {
+			tracer.LogError(span, err)
+			continue
+		}
+
+		reservationRequests = append(reservationRequests, reservationRequest)
+	}
+
+	return &reservationRequests
+}
+
+func (r *Repository) FindOwnersSubmitted(ownerID uint, ctx context.Context) *[]model.ReservationRequest {
+	span := tracer.StartSpanFromContext(ctx, "findOwnersSubmittedRepository")
+	defer span.Finish()
+
+	reservationRequests := []model.ReservationRequest{}
+	dbCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	filter := bson.D{
+		{"ownerID", ownerID},
+		{"status", model.SUBMITTED},
+	}
+	cursor, err := r.Db.Collection("reservation_request").Find(dbCtx, filter)
+
+	if err != nil {
+		tracer.LogError(span, err)
+		return nil
+	}
+	defer cursor.Close(dbCtx)
+
+	for cursor.Next(dbCtx) {
+		var reservationRequest model.ReservationRequest
+		err := cursor.Decode(&reservationRequest)
+		if err != nil {
+			continue
+		}
+
+		reservationRequests = append(reservationRequests, reservationRequest)
+	}
+
+	return &reservationRequests
+}
+
+func (r *Repository) FindOwnersReservations(ownerID uint, ctx context.Context, status []model.ReservationRequestStatus) *[]model.ReservationRequest {
+	span := tracer.StartSpanFromContext(ctx, "findOwnersSubmittedRepository")
+	defer span.Finish()
+
+	reservationRequests := []model.ReservationRequest{}
+	dbCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	filter := bson.D{
+		{"ownerID", ownerID},
+		{"status", bson.D{{"$in", status}}},
 	}
 	cursor, err := r.Db.Collection("reservation_request").Find(dbCtx, filter)
 

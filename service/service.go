@@ -3,13 +3,14 @@ package service
 import (
 	"context"
 	"errors"
+	"os"
+	"time"
+
 	"github.com/windbnb/reservation-service/client"
 	"github.com/windbnb/reservation-service/model"
 	"github.com/windbnb/reservation-service/repository"
 	"github.com/windbnb/reservation-service/tracer"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"os"
-	"time"
 )
 
 var accommodationServiceUrl = os.Getenv("accommodationServiceUrl") + "/api/accomodation/"
@@ -59,13 +60,14 @@ func (s *ReservationRequestService) SaveReservationRequest(createReservationRequ
 	}
 
 	var reservationRequest = model.ReservationRequest{
-		StartDate:       createReservationRequest.StartDate,
-		EndDate:         createReservationRequest.StartDate.AddDate(0, 0, int(createReservationRequest.NumberOfDays)),
-		GuestID:         createReservationRequest.GuestID,
-		GuestNumber:     createReservationRequest.GuestNumber,
-		Status:          status,
-		AccommodationID: createReservationRequest.AccommodationID,
-		OwnerID:         accommodationInfo.UserID}
+		StartDate:         createReservationRequest.StartDate,
+		EndDate:           createReservationRequest.StartDate.AddDate(0, 0, int(createReservationRequest.NumberOfDays)),
+		GuestID:           createReservationRequest.GuestID,
+		GuestNumber:       createReservationRequest.GuestNumber,
+		Status:            status,
+		AccommodationID:   createReservationRequest.AccommodationID,
+		OwnerID:           accommodationInfo.UserID,
+		AccommodationName: accommodationInfo.Name}
 
 	s.Repo.SaveReservationRequest(&reservationRequest, ctx)
 
@@ -96,6 +98,25 @@ func (s *ReservationRequestService) isDateInAvailableTerms(date time.Time, avail
 	return false
 }
 
+func (s *ReservationRequestService) GetWheatherGuestWasWithHost(guestID uint, ownerID uint, ctx context.Context) bool {
+	span := tracer.StartSpanFromContext(ctx, "getWheatherGuestWasWithHost")
+	defer span.Finish()
+
+	ctx = tracer.ContextWithSpan(context.Background(), span)
+
+	return s.Repo.FindGuestWithHost(guestID, ownerID, ctx)
+}
+
+func (s *ReservationRequestService) GetWheatherGuestWasInAccomodation(guestID uint, accomodationId uint, ctx context.Context) bool {
+	span := tracer.StartSpanFromContext(ctx, "getWheatherGuestWasInAccomodation")
+	defer span.Finish()
+
+	ctx = tracer.ContextWithSpan(context.Background(), span)
+
+	return s.Repo.FindGuestInAccomodation(guestID, accomodationId, ctx)
+}
+
+
 func (s *ReservationRequestService) GetGuestActiveReservations(guestID uint, ctx context.Context) *[]model.ReservationRequest {
 	span := tracer.StartSpanFromContext(ctx, "getGuestActiveReservationsService")
 	defer span.Finish()
@@ -105,6 +126,16 @@ func (s *ReservationRequestService) GetGuestActiveReservations(guestID uint, ctx
 	return s.Repo.FindGuestsActive(guestID, ctx)
 }
 
+func (s *ReservationRequestService) GetGuestAllReservations(guestID uint, ctx context.Context) *[]model.ReservationRequest {
+	span := tracer.StartSpanFromContext(ctx, "getGuestAllReservationsService")
+	defer span.Finish()
+
+	ctx = tracer.ContextWithSpan(context.Background(), span)
+
+	return s.Repo.FindGuestsAllReservations(guestID, ctx)
+}
+
+
 func (s *ReservationRequestService) GetOwnersActiveReservations(ownerID uint, ctx context.Context) *[]model.ReservationRequest {
 	span := tracer.StartSpanFromContext(ctx, "getOwnersActiveReservationsService")
 	defer span.Finish()
@@ -112,6 +143,15 @@ func (s *ReservationRequestService) GetOwnersActiveReservations(ownerID uint, ct
 	ctx = tracer.ContextWithSpan(context.Background(), span)
 
 	return s.Repo.FindOwnersActive(ownerID, ctx)
+}
+
+func (s *ReservationRequestService) GetOwnersAllReservations(ownerID uint, ctx context.Context, status []model.ReservationRequestStatus) *[]model.ReservationRequest {
+	span := tracer.StartSpanFromContext(ctx, "getOwnersAllReservationsService")
+	defer span.Finish()
+
+	ctx = tracer.ContextWithSpan(context.Background(), span)
+
+	return s.Repo.FindOwnersReservations(ownerID, ctx, status)
 }
 
 func (s *ReservationRequestService) DeleteReservationRequest(reservationRequestID primitive.ObjectID, userID uint, ctx context.Context) error {
