@@ -5,14 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"strconv"
+
 	"github.com/gorilla/mux"
 	"github.com/opentracing/opentracing-go"
 	"github.com/windbnb/reservation-service/client"
 	"github.com/windbnb/reservation-service/tracer"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"io"
-	"net/http"
-	"strconv"
 
 	"github.com/windbnb/reservation-service/model"
 	"github.com/windbnb/reservation-service/service"
@@ -154,6 +155,60 @@ func (h *Handler) GetOwnersActive(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(reservationRequestsDto)
+}
+
+func (h *Handler) GetWheatherGuestWasWithHost(w http.ResponseWriter, r *http.Request) {
+	span := tracer.StartSpanFromRequest("getWheatherGuestWasWithHostHandler", h.Tracer, r)
+	defer span.Finish()
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling get whether guest was accomodated by host at %s\n", r.URL.Path)),
+	)
+	ctx := tracer.ContextWithSpan(context.Background(), span)
+
+	w.Header().Set("Content-Type", "application/json")
+	userResponse := h.authorizeGuest(r)
+	if userResponse.Role != "GUEST" {
+		tracer.LogError(span, errors.New("Unauthorized"))
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(model.ErrorResponse{Message: "user is not an authorised guest", StatusCode: http.StatusUnauthorized})
+		return
+	}
+
+	params := mux.Vars(r)
+	guestID, _ := strconv.Atoi(params["guestId"])
+	ownerID, _ := strconv.Atoi(params["hostId"])
+
+	response := h.Service.GetWheatherGuestWasWithHost(uint(guestID), uint(ownerID), ctx)
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+}
+
+func (h *Handler) GetWheatherGuestWasInAccomodation(w http.ResponseWriter, r *http.Request) {
+	span := tracer.StartSpanFromRequest("getWheatherGuestWasInAccomodationHandler", h.Tracer, r)
+	defer span.Finish()
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling get whether guest was in accomodation at %s\n", r.URL.Path)),
+	)
+	ctx := tracer.ContextWithSpan(context.Background(), span)
+
+	w.Header().Set("Content-Type", "application/json")
+	userResponse := h.authorizeGuest(r)
+	if userResponse.Role != "GUEST" {
+		tracer.LogError(span, errors.New("Unauthorized"))
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(model.ErrorResponse{Message: "user is not an authorised guest", StatusCode: http.StatusUnauthorized})
+		return
+	}
+
+	params := mux.Vars(r)
+	guestID, _ := strconv.Atoi(params["guestId"])
+	accommodationID, _ := strconv.Atoi(params["accomodationId"])
+
+	response := h.Service.GetWheatherGuestWasInAccomodation(uint(guestID), uint(accommodationID), ctx)
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
 }
 
 func (h *Handler) DeleteReservationRequest(w http.ResponseWriter, r *http.Request) {
