@@ -21,6 +21,9 @@ func ConfigureRouter(handler *handler.Handler) *mux.Router {
 	router.HandleFunc("/api/reservationRequest/guest/{guestId}/host/{hostId}", handler.GetWheatherGuestWasWithHost).Methods("GET")
 	router.HandleFunc("/api/reservationRequest/guest/{guestId}/accomodation/{accomodationId}", handler.GetWheatherGuestWasInAccomodation).Methods("GET")
 
+	router.HandleFunc("/probe/liveness", handler.Healthcheck)
+	router.HandleFunc("/probe/readiness", handler.Ready)
+
 	router.Path("/metrics").Handler(metrics.MetricsHandler())
 
 	return router
